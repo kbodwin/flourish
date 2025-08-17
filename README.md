@@ -4,6 +4,8 @@
 
 `flourish` is a Quarto extension for styling code in rendered code chunks.
 
+[Slides from useR!2025](https://www.visruth.com/flourish-talk#/title-slide)
+
 ## Installation
 
 Install by running in your terminal:
@@ -54,6 +56,8 @@ filters:
 #|     - mask: true
 #|     - style: "text-decoration: underline;"
 ```
+
+See [example.qmd](/example.qmd) and its [rendered counterpart](/example.html) for further details.
 
 ## Future aspirations
 

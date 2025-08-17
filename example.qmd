@@ -1,15 +1,21 @@
 ---
 title: "Flourish Example"
+author: "Kelly Bodwin and Visruth Srimath Kandali"
+format: html
 embed-resources: true
 filters:
-  - flourish
+    - flourish
 ---
 
 This filter adds the ability to specify in hashpipe comments instructions for highlighting the code in the rendered chunk.
 
+See `talk.qmd` and `talk.html` in this repository for RevealJS slides featuring `flourish`
+
+## How to `flourish`
+
 By default, ordinary yellow highlighting is used:
 
-```
+```yaml
 #| flourish:
 #| - target-rx: "[0-9]*"
 ```
@@ -24,7 +30,7 @@ mean(x = 1:10)
 
 It is also possible to specify custom formatting with the `style` tag. Here you must provide the exact text that would appear in a CSS class definition.
 
-```
+```yaml
 #| flourish:
 #| - target:
 #|      - "mean"
@@ -43,9 +49,11 @@ x <- 1:10
 mean(x = 1:10)
 ```
 
+## Blanking Code Using `flourish`
+
 One fun way to use this is to blank out code pieces for student exercises.
 
-```
+```yaml
 #| flourish:
 #| - target:
 #|     - "mean"
@@ -57,7 +65,7 @@ One fun way to use this is to blank out code pieces for student exercises.
 #| flourish:
 #| - target:
 #|     - "mean"
-#|     - style: 
+#|     - style:
 #|         - "color: transparent;"
 #|         - "text-decoration: underline;"
 
@@ -67,7 +75,7 @@ mean(x = 1:10)
 
 Note that blanking out pieces with `style` means the answers are still visible in the underlying HTML.  To fully replace the answers with placeholder space, use `mask`:
 
-```
+```yaml
 #| flourish:
 #| - target:
 #|     - "mean"
@@ -85,3 +93,81 @@ Note that blanking out pieces with `style` means the answers are still visible i
 x <- 1:10
 mean(x = 1:10)
 ```
+
+## Comprehensive Example
+
+This example seeks to serve as a reference for all your `flourish` needs.
+
+```{.yaml}
+#| flourish:
+#| - target: "mean"
+#| - target:
+#|     - "sd"
+#|     - mask: true
+#|     - style: "text-decoration: underline;"
+#| - target-rx: "[0-9]*"
+#| - target:
+#|      - "x"
+#|      - style: "font-weight: bold;"
+#| - target:
+#|      - "set.seed"
+#|      - "rnorm"
+#|      - style:
+#|            - "font-style: italic;"
+#|            - "background-color: #468e5d;"
+```
+```{r}
+#| flourish:
+#| - target: "mean"
+#| - target:
+#|     - "sd"
+#|     - mask: true
+#|     - style: "text-decoration: underline;"
+#| - target-rx: "[0-9]*"
+#| - target:
+#|      - "x"
+#|      - style: "font-weight: bold;"
+#| - target:
+#|      - "set.seed"
+#|      - "rnorm"
+#|      - style:
+#|            - "font-style: italic;"
+#|            - "background-color: #468e5d;"
+set.seed(0)
+x <- rnorm(10)
+mean(x)
+sd(x)
+```
+
+## Fun With CSS
+
+Note that `flourish` admits (almost) any valid CSS, which allows us to do stuff like this: 
+
+```yaml
+#| flourish:
+#| - target:
+#|      - "wackyyy"
+#|      - style:
+#|            - "background-color: #bd8c51;"
+#|            - "text-decoration: line-through;"
+#|            - "-webkit-text-stroke: 1px black;"
+#|            - "filter: blur(1px);"
+#|            - "font-family: 'Brush Script MT', cursive;"
+```
+
+```{r}
+#| flourish:
+#| - target:
+#|      - "wackyyy"
+#|      - style:
+#|            - "background-color: #bd8c51;"
+#|            - "text-decoration: line-through;"
+#|            - "-webkit-text-stroke: 1px black;"
+#|            - "filter: blur(1px);"
+#|            - "font-family: 'Brush Script MT', cursive;"
+
+wackyyy <- 1:10
+mean(wackyyy)
+```
+
+With limited testing, animations don't seem to work.
