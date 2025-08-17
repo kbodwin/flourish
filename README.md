@@ -16,7 +16,7 @@ and add this `yaml` in your qmd:
 
 ```yaml
 filters:
- - flourish.lua
+ - flourish
 ```
 
 ## Current abilities of the package
