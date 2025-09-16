@@ -78,4 +78,30 @@ describe('injectFlourishes core', () => {
         const out = ctx.injectFlourishes(html, /b/g, 'flr-x');
         expect(out).toBe('<code>a<span class="flr-x">b</span>c</code>');
     });
+
+    test('overlapping-like sequence by running twice', () => {
+        let out = ctx.injectFlourishes('aba', /aba/g, 'x');
+        out = ctx.injectFlourishes(out, /ba/g, 'y');
+        expect(out).toBe('<span class="x">a<span class="y">ba</span></span>');
+    });
+
+    test('greedy vs non-greedy regex respected', () => {
+        const html = 'a1b2c';
+        const greedy = ctx.injectFlourishes(html, /a.*c/g, 'g1');
+        const nongreedy = ctx.injectFlourishes(html, /a.*?b/g, 'g2');
+        expect(greedy).toBe('<span class="g1">a1b2c</span>');
+        expect(nongreedy).toBe('<span class="g2">a1b</span>2c');
+    });
+
+    test('respects tag boundaries across inner tags', () => {
+        const html = 'ab<em>c</em>d';
+        const out = ctx.injectFlourishes(html, /bcd/g, 'z');
+        expect(out).toBe('a<span class="z">b</span><em><span class="z">c</span></em><span class="z">d</span>');
+    });
+
+    test('special chars in pattern escaped correctly', () => {
+        const html = 'price is $5.00';
+        const out = ctx.injectFlourishes(html, /\$5\.00/g, 'p');
+        expect(out).toBe('price is <span class="p">$5.00</span>');
+    });
 });

@@ -28,7 +28,6 @@ describe('parseDataFlourish + addStyle + DOMContentLoaded pipeline', () => {
     beforeEach(() => {
         document.head.innerHTML = '';
         document.body.innerHTML = `
-      <!-- Escape < in attribute values -->
       <div class="cell" data-flourish='[{"target":"&lt;"}]'>
         <pre><code>1 &lt; 2 &amp; 3</code></pre>
       </div>
