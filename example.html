@@ -2342,13 +2342,23 @@ function wrapMatches(str, toDo, className, mask) {
                 }
 
                 // Apply flourishes with the appropriate class name
-                content = injectFlourishes(content, new RegExp(pattern.regex.source, 'g'), className, pattern.mask);
+                content = injectFlourishes(content, pattern.regex, className, pattern.mask);
             }
 
             el.innerHTML = content;
         }
     }
 });
+
+// Hardcode swaps for sanitized HTML
+function htmlEntityEscapeForSearch(s) {
+    return s.replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+function escapeForRegexLiteral(s) {
+    return RegExp.escape ? RegExp.escape(s) : s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 // Helper function for parsing YAML
 function parseDataFlourish(flourishAttr) {
@@ -2367,37 +2377,42 @@ function parseDataFlourish(flourishAttr) {
                 // pull style out and collect patterns
                 let style = entry.style || 'default';
                 let mask = entry.mask || false;
-                let flags = key === 'target-rx' ? 'g' : undefined;
+                let flags = 'g';
                 const pats = [];
 
                 for (const it of items) {
                     if (typeof it === 'string') {
-                        pats.push(it);
-                    }
-                    else if (it && it.style) {
+                        if (key === 'target') {
+                            const encoded = htmlEntityEscapeForSearch(it);
+                            pats.push(escapeForRegexLiteral(encoded));
+                        } else {
+                            pats.push(it);
+                        }
+                    } else if (it && it.style) {
                         style = it.style;
-                    }
-                    else if (it && it.source) {
-                        pats.push(it.source);
+                    } else if (it && it.source) {
+                        if (key === 'target') {
+                            const encoded = htmlEntityEscapeForSearch(it.source);
+                            pats.push(escapeForRegexLiteral(encoded));
+                        } else {
+                            pats.push(it.source);
+                        }
                         if (it.flags) flags = it.flags;
-                    }
-                    else if (it && it.mask) {
+                    } else if (it && it.mask) {
                         mask = it.mask;
                     }
                 }
 
                 if (pats.length) {
-                    const re = new RegExp(
-                        pats.map(p => `(${p})`).join('|'),
-                        flags
-                    );
-                    result.push({ type: key, regex: re, style: style, mask: mask });
+                    const pattern = key === 'target' ? pats.join('|')
+                        : pats.map(p => `(${p})`).join('|');
+                    const re = new RegExp(pattern, flags);
+                    result.push({ type: key, regex: re, style, mask });
                 }
             }
         }
         return result;
-    }
-    catch {
+    } catch {
         return null;
     }
 }
@@ -2528,14 +2543,19 @@ function addStyle(document, className = "flr-default",
 <span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="co">#|      - style:</span></span>
 <span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="co">#|            - &quot;font-style: italic;&quot;</span></span>
 <span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="co">#|            - &quot;background-color: #468e5d;&quot;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell" data-flourish="[{&quot;target&quot;:&quot;mean&quot;},{&quot;target&quot;:[&quot;sd&quot;,{&quot;mask&quot;:true},{&quot;style&quot;:&quot;text-decoration: underline;&quot;}]},{&quot;target-rx&quot;:&quot;[0-9]*&quot;},{&quot;target&quot;:[&quot;x&quot;,{&quot;style&quot;:&quot;font-weight: bold;&quot;}]},{&quot;target&quot;:[&quot;set.seed&quot;,&quot;rnorm&quot;,{&quot;style&quot;:[&quot;font-style: italic;&quot;,&quot;background-color: #468e5d;&quot;]}]}]">
+<div class="cell" data-flourish="[{&quot;target&quot;:[&quot;*&quot;,&quot;&lt;-&quot;,&quot;|&gt;&quot;]},{&quot;target&quot;:[&quot;sd&quot;,{&quot;mask&quot;:true},{&quot;style&quot;:&quot;text-decoration: underline;&quot;}]},{&quot;target-rx&quot;:&quot;[0-9]*&quot;},{&quot;target&quot;:[&quot;mean&quot;,&quot;x&quot;,{&quot;style&quot;:&quot;font-weight: bold;&quot;}]},{&quot;target&quot;:[&quot;set.seed&quot;,&quot;rnorm&quot;,{&quot;style&quot;:[&quot;font-style: italic;&quot;,&quot;background-color: #468e5d;&quot;]}]}]">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">0</span>)</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">10</span>)</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(x)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>x <span class="sc">*</span> <span class="dv">10</span> <span class="sc">|&gt;</span> <span class="fu">median</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1]  12.62954285  -3.26233361  13.29799263  12.72429321   4.14641434
+ [6] -15.39950042  -9.28567035  -2.94720447  -0.05767173  24.04653389</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(x)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 0.358924</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(x)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(x)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 1.205336</code></pre>
 </div>
@@ -2544,18 +2564,18 @@ function addStyle(document, className = "flr-default",
 <section id="fun-with-css" class="level2">
 <h2 class="anchored" data-anchor-id="fun-with-css">Fun With CSS</h2>
 <p>Note that <code>flourish</code> admits (almost) any valid CSS, which allows us to do stuff like this:</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| flourish:</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co">#| - target:</span></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co">#|      - &quot;wackyyy&quot;</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co">#|      - style:</span></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co">#|            - &quot;background-color: #bd8c51;&quot;</span></span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co">#|            - &quot;text-decoration: line-through;&quot;</span></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co">#|            - &quot;-webkit-text-stroke: 1px black;&quot;</span></span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="co">#|            - &quot;filter: blur(1px);&quot;</span></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="co">#|            - &quot;font-family: &#39;Brush Script MT&#39;, cursive;&quot;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| flourish:</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co">#| - target:</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co">#|      - &quot;wackyyy&quot;</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co">#|      - style:</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">#|            - &quot;background-color: #bd8c51;&quot;</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co">#|            - &quot;text-decoration: line-through;&quot;</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co">#|            - &quot;-webkit-text-stroke: 1px black;&quot;</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="co">#|            - &quot;filter: blur(1px);&quot;</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="co">#|            - &quot;font-family: &#39;Brush Script MT&#39;, cursive;&quot;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell" data-flourish="[{&quot;target&quot;:[&quot;wackyyy&quot;,{&quot;style&quot;:[&quot;background-color: #bd8c51;&quot;,&quot;text-decoration: line-through;&quot;,&quot;-webkit-text-stroke: 1px black;&quot;,&quot;filter: blur(1px);&quot;,&quot;font-family: &#39;Brush Script MT&#39;, cursive;&quot;]}]}]">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>wackyyy <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(wackyyy)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>wackyyy <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(wackyyy)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 5.5</code></pre>
 </div>

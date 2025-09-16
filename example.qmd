@@ -118,23 +118,28 @@ This example seeks to serve as a reference for all your `flourish` needs.
 ```
 ```{r}
 #| flourish:
-#| - target: "mean"
+#| - target:
+#|     - "*"
+#|     - "<-"
+#|     - "|>"
 #| - target:
 #|     - "sd"
 #|     - mask: true
 #|     - style: "text-decoration: underline;"
 #| - target-rx: "[0-9]*"
 #| - target:
-#|      - "x"
-#|      - style: "font-weight: bold;"
+#|     - "mean"
+#|     - "x"
+#|     - style: "font-weight: bold;"
 #| - target:
-#|      - "set.seed"
-#|      - "rnorm"
-#|      - style:
-#|            - "font-style: italic;"
-#|            - "background-color: #468e5d;"
+#|     - "set.seed"
+#|     - "rnorm"
+#|     - style:
+#|           - "font-style: italic;"
+#|           - "background-color: #468e5d;"
 set.seed(0)
 x <- rnorm(10)
+x * 10 |> median()
 mean(x)
 sd(x)
 ```

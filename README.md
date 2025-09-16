@@ -95,12 +95,6 @@ Let's flourish this text, that's what I mean.
 :::
 ```
 
-### Bugs to fix
-
-* Right now, I believe it's not sanitized against rx special characters; e.g. if you want to flourish the literal character "*" that will not work.
-
-* In HTML, some special characters appear different, e.g. `<` appears as `&lt;`. That means that choosing `x <- 1:10` as a flourish target won't work, because the `<` won't get matched.
-
 ### Things you might want but we don't plan to do
 
 * Functionality for pdf or docx.  This extension is written in JavaScript for HTML; any other doc formats would require a total rebuild from the ground up.
