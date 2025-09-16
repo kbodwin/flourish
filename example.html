@@ -2315,7 +2315,11 @@ function wrapMatches(str, toDo, className, mask) {
 
         // Find only the code chunks you care about
         const sourceEls = Array.from(cell.querySelectorAll('code'))
-            .filter(el => !el.closest('.cell-output') && !el.closest('.cell-output-stdout'));
+            .filter(el =>
+                !el.closest('.cell-output') &&
+                !el.closest('.cell-output-stdout') &&
+                el.dataset.flourished !== 'true' // idempotent per element
+            );
 
         // For each code chunk, add flourishes
         for (const el of sourceEls) {
@@ -2346,16 +2350,19 @@ function wrapMatches(str, toDo, className, mask) {
             }
 
             el.innerHTML = content;
+            el.dataset.flourished = 'true';
         }
     }
 });
 
 // Hardcode swaps for sanitized HTML
 function htmlEntityEscapeForSearch(s) {
-    return s.replace(/&/g, '&amp;')
+    return s
         .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+        .replace(/>/g, '&gt;')
+        .replace(/&(?![a-zA-Z]+;|#\d+;|#x[0-9A-Fa-f]+;)/g, '&amp;');
 }
+
 function escapeForRegexLiteral(s) {
     return RegExp.escape ? RegExp.escape(s) : s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -2377,7 +2384,7 @@ function parseDataFlourish(flourishAttr) {
                 // pull style out and collect patterns
                 let style = entry.style || 'default';
                 let mask = entry.mask || false;
-                let flags = 'g';
+                let flags = entry.flags || 'g';
                 const pats = [];
 
                 for (const it of items) {
@@ -2422,13 +2429,14 @@ function addStyle(document, className = "flr-default",
     styleText = `background-color: yellow;
         display: inline;
         color: inherit;`) {
+    // Deduplicate styles by class selector
+    const selector = `.${className}`;
+    const exists = Array.from(document.querySelectorAll('style'))
+        .some(s => s.textContent && s.textContent.includes(selector));
+    if (exists) return;
 
     const styleSheet = document.createElement("style");
-    styleSheet.textContent = `
-   .${className} {
-    ${styleText}
-  }
-`;
+    styleSheet.textContent = `${selector} { ${styleText} }`;
     document.head.appendChild(styleSheet);
 }
 </script>
