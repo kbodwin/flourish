@@ -18,7 +18,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Find only the code chunks you care about
         const sourceEls = Array.from(cell.querySelectorAll('code'))
-            .filter(el => !el.closest('.cell-output') && !el.closest('.cell-output-stdout'));
+            .filter(el =>
+                !el.closest('.cell-output') &&
+                !el.closest('.cell-output-stdout') &&
+                el.dataset.flourished !== 'true' // idempotent per element
+            );
 
         // For each code chunk, add flourishes
         for (const el of sourceEls) {
@@ -45,13 +49,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 // Apply flourishes with the appropriate class name
-                content = injectFlourishes(content, new RegExp(pattern.regex.source, 'g'), className, pattern.mask);
+                content = injectFlourishes(content, pattern.regex, className, pattern.mask);
             }
 
             el.innerHTML = content;
+            el.dataset.flourished = 'true';
         }
     }
 });
+
+// Hardcode swaps for sanitized HTML
+function htmlEntityEscapeForSearch(s) {
+    return s
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
 
 // Helper function for parsing YAML
 function parseDataFlourish(flourishAttr) {
@@ -70,37 +84,32 @@ function parseDataFlourish(flourishAttr) {
                 // pull style out and collect patterns
                 let style = entry.style || 'default';
                 let mask = entry.mask || false;
-                let flags = key === 'target-rx' ? 'g' : undefined;
+                let flags = entry.flags || 'g';
                 const pats = [];
 
                 for (const it of items) {
                     if (typeof it === 'string') {
-                        pats.push(it);
-                    }
-                    else if (it && it.style) {
+                        pats.push(key === 'target' ? htmlEntityEscapeForSearch(it) : it);
+                    } else if (it && it.style) {
                         style = it.style;
-                    }
-                    else if (it && it.source) {
-                        pats.push(it.source);
+                    } else if (it && it.source) {
+                        pats.push(key === 'target' ? htmlEntityEscapeForSearch(it.source) : it.source);
                         if (it.flags) flags = it.flags;
-                    }
-                    else if (it && it.mask) {
+                    } else if (it && it.mask) {
                         mask = it.mask;
                     }
                 }
 
                 if (pats.length) {
-                    const re = new RegExp(
-                        pats.map(p => `(${p})`).join('|'),
-                        flags
-                    );
-                    result.push({ type: key, regex: re, style: style, mask: mask });
+                    const pattern = key === 'target' ? pats.join('|')
+                        : pats.map(p => `(${p})`).join('|');
+                    const re = new RegExp(pattern, flags);
+                    result.push({ type: key, regex: re, style, mask });
                 }
             }
         }
         return result;
-    }
-    catch {
+    } catch {
         return null;
     }
 }
@@ -110,12 +119,13 @@ function addStyle(document, className = "flr-default",
     styleText = `background-color: yellow;
         display: inline;
         color: inherit;`) {
+    // Deduplicate styles by class selector
+    const selector = `.${className}`;
+    const exists = Array.from(document.querySelectorAll('style'))
+        .some(s => s.textContent && s.textContent.includes(selector));
+    if (exists) return;
 
     const styleSheet = document.createElement("style");
-    styleSheet.textContent = `
-   .${className} {
-    ${styleText}
-  }
-`;
+    styleSheet.textContent = `${selector} { ${styleText} }`;
     document.head.appendChild(styleSheet);
 }
