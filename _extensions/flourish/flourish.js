@@ -61,13 +61,10 @@ document.addEventListener("DOMContentLoaded", () => {
 // Hardcode swaps for sanitized HTML
 function htmlEntityEscapeForSearch(s) {
     return s
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/&(?![a-zA-Z]+;|#\d+;|#x[0-9A-Fa-f]+;)/g, '&amp;');
-}
-
-function escapeForRegexLiteral(s) {
-    return RegExp.escape ? RegExp.escape(s) : s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        .replace(/>/g, '&gt;');
 }
 
 // Helper function for parsing YAML
@@ -92,21 +89,11 @@ function parseDataFlourish(flourishAttr) {
 
                 for (const it of items) {
                     if (typeof it === 'string') {
-                        if (key === 'target') {
-                            const encoded = htmlEntityEscapeForSearch(it);
-                            pats.push(escapeForRegexLiteral(encoded));
-                        } else {
-                            pats.push(it);
-                        }
+                        pats.push(key === 'target' ? htmlEntityEscapeForSearch(it) : it);
                     } else if (it && it.style) {
                         style = it.style;
                     } else if (it && it.source) {
-                        if (key === 'target') {
-                            const encoded = htmlEntityEscapeForSearch(it.source);
-                            pats.push(escapeForRegexLiteral(encoded));
-                        } else {
-                            pats.push(it.source);
-                        }
+                        pats.push(key === 'target' ? htmlEntityEscapeForSearch(it.source) : it.source);
                         if (it.flags) flags = it.flags;
                     } else if (it && it.mask) {
                         mask = it.mask;
